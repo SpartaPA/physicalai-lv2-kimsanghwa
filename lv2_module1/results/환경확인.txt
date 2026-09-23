@@ -1,0 +1,4 @@
+- 호스트명 : pa05
+- Ubuntu 버전 : 22.04.5 LTS
+- 아키텍쳐 : arm64
+- 사용 포트 : /dev/ttyACM0
