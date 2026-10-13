@@ -1,0 +1,80 @@
+# 검출 결과 토픽 확인 (2026-10-12, 노트북 pa16, ROS 2 Lyrical, RealSense D435)
+# 실행: ros2 launch ~/Lv2_EYE4_Assignment/lv2_module5/tools/camera_view.launch.py
+# 검출 결과는 두 가지로 확인
+#   (1) 메시지 출력 : /target                  → ros2 topic echo /target
+#   (2) 시각화 화면 : /perception/debug_image  → RViz2 "Detection" Image 디스플레이
+
+==================================================================
+(1) /target — 검출 결과 메시지 (제어 노드로 넘기는 값)
+==================================================================
+[토픽]
+topic        : /target
+type         : geometry_msgs/msg/PointStamped
+publisher    : /perception_node
+QoS          : BEST_EFFORT, KEEP_LAST depth 1, VOLATILE   (발제문 규약)
+               → 구독 측도 best effort로 받아야 연결됨
+발행 주기     : 컬러 영상 1장마다 1번 (검출 여부와 관계없이 매 프레임 발행)
+측정 fps      : 30.4 fps (5초 동안 152개 수신, 검출 152/152)
+
+[필드 의미]
+header.stamp    : 입력 컬러 영상의 시각 (새 시각을 만들지 않음)
+header.frame_id : camera_color_optical_frame
+point.x = ex    : 화면 중심 기준 가로 어긋남, -1 ~ +1 (오른쪽 +)
+point.y = ey    : 화면 중심 기준 세로 어긋남, -1 ~ +1 (아래쪽 +)
+point.z         : 목표 넓이 / 화면 넓이 (검출되면 항상 0보다 큼)
+미검출          : x = y = z = 0  → 제어는 z == 0 이면 미검출로 판단
+
+[ros2 topic echo --once /target 출력]
+header:
+  stamp:
+    sec: 1791774962
+    nanosec: 10802734
+  frame_id: camera_color_optical_frame
+point:
+  x: -0.2537063713108716
+  y: 0.5657029296277919
+  z: 0.14434244791666667
+---
+해석: 목표(파란 블록)가 화면 중심보다 왼쪽(ex≈-0.25)·아래쪽(ey≈+0.57)에 있고,
+      화면 넓이의 약 14.4%를 차지함.
+
+==================================================================
+(2) /perception/debug_image — 검출 결과 시각화 화면
+==================================================================
+[토픽]
+topic        : /perception/debug_image
+type         : sensor_msgs/msg/Image
+publisher    : /perception_node   (QoS: RELIABLE, KEEP_LAST depth 1, VOLATILE)
+발행 조건     : publish_debug_image: true 일 때만 (camera_view.launch.py는 true)
+측정 fps      : 28.4 fps (reliable 구독)
+  참고) 장당 약 0.9MB라 best-effort 구독(rqt_image_view)은 거의 0 fps → RViz(reliable)로 확인
+
+[메시지 필드]
+width        : 640
+height       : 480
+encoding     : bgr8
+step         : 1920   (= 640 x 3 byte)
+data 길이     : 921600
+frame_id     : camera_color_optical_frame   (/target과 같은 영상 header)
+
+[화면에 그리는 내용 — detector.draw()]
+흰 십자     : 영상 중심
+초록 선     : 선택된 목표 외곽선(컨투어)
+빨간 점·선  : 목표 중심과 영상 중심을 잇는 선
+위쪽 글자   : ex / ey / z 값, candidates(후보 수), dist(거리, 측정 안 되면 --)
+미검출 시   : 빨간 글자 "NOT DETECTED (z=0)"
+
+[측정 당시 화면]
+ex=-0.254 ey=+0.566 z=0.1443, candidates=1, dist=--
+→ /target 메시지 값과 같음 (같은 프레임의 detect() 결과)
+
+==================================================================
+[검출 설정 — config/tracker.yaml]
+HSV          : [93,120,35] ~ [130,255,255]
+min_area_ratio: 0.002 (640x480에서 약 614 px 이상만 후보)
+선택 기준     : 후보 중 넓이가 가장 큰 덩어리 1개
+거리 gate     : 사용 안 함 (enforce_depth_range: false) — dist는 기록용
+
+[캡처]
+마스크_토픽확인_rviz.png — Detection 패널(/perception/debug_image) 포함,
+  Displays → Detection → Topic: /perception/debug_image, Status: Ok

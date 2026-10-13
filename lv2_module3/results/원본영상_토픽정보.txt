@@ -1,0 +1,22 @@
+[토픽]
+토픽 이름      : /camera/camera/color/image_raw
+메시지 타입     : sensor_msgs/msg/Image
+publisher    : /camera/camera (realsense2_camera)
+subscribers  : /perception_node, /rviz   (QoS: RELIABLE)
+rviz status  : Status: Ok, 약 31 fps
+
+[메시지 필드 — 토픽에서 1프레임 받아 확인]
+width        : 640
+height       : 480
+encoding     : rgb8
+step         : 1920   (= 640 x 3 byte)
+data 길이     : 1920 x 480
+frame_id     : camera_color_optical_frame
+
+[wrapper 로그]
+Open profile: stream_type: Color(0), Format: RGB8, Width: 640, Height: 480, FPS: 30
+
+[캡처]
+원본영상_토픽확인_rviz.png — RViz 창 전체.
+  왼쪽 위 "Camera color (raw)" 패널 = 원본 영상,
+  Displays → Camera color (raw) → Topic: /camera/camera/color/image_raw
